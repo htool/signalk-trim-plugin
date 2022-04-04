@@ -97,7 +97,7 @@ var sailconfig = {};
 var wave, windSpeed, windAngle;
 var autoWave, autoWindSpeed, autoWindAngle;
 var settingsMode = false;
-var autoMode = false;
+var autoMode = true;
 var conditionsLoaded = false;
 
 const navigatorObject = window.navigator;
@@ -268,7 +268,7 @@ function getRandomKey (obj) {
 }
 
 function handleMessage (data) {
-  if (!settingsMode && autoMode) {
+  if (!settingsMode && autoMode && workingConfig) {
     var path = data.updates[0].values[0].path.split('.')[2]
     var value = data.updates[0].values[0].value
     switch (path) {
