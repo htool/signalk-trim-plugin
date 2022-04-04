@@ -16,6 +16,7 @@
 <script>
 
 const urlParams = new URLSearchParams(window.location.search);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // Set day or night mode
 var dayNight = urlParams.get('mode');
@@ -23,6 +24,7 @@ var dayNight = urlParams.get('mode');
 var mfd_name = urlParams.get('mfd_name');
 var mfd_model_detail = urlParams.get('mfd_model_detail');
 var settingsMode = false;
+var workingConfig = false;
 
 // Redirect console to html
 if (mfd_name != null) {
@@ -46,10 +48,31 @@ if (mfd_name != null) {
   }, 300000);
 }
 
-// Give MFD a fresh button
+// Give MFD a refresh button
 if (mfd_model_detail != null) {
   console.log('mfd_model_detail=' + mfd_model_detail + ' - including refresh button');
   document.write('<div id="divfix"><a href="#" onclick="window.location.reload(true);"><img src ="refresh.png"/></a></div>');
+}
+
+function checkWorkingConfig () {
+  readConfig()
+  if (sailconfig.conditions) {
+    if (typeof Object.keys(sailconfig.conditions)[0] != 'undefined') {
+      wave = Object.keys(sailconfig.conditions)[0]
+      if (typeof Object.keys(sailconfig.conditions[wave])[0] != 'undefined') {
+        windSpeed = Object.keys(sailconfig.conditions[wave])[0]
+        if (typeof Object.keys(sailconfig.conditions[wave][windSpeed])[0] != 'undefined') {
+          windAngle = Object.keys(sailconfig.conditions[wave][windSpeed])[0]
+          workingConfig = true
+          updateCTables()
+          updateSailTables()
+        }
+      }
+    }
+  } else {
+    console.log("Waiting for working config...")
+    setTimeout (checkWorkingConfig, 1000)
+  }
 }
 
 function settingSave() {
@@ -74,7 +97,7 @@ var sailconfig = {};
 var wave, windSpeed, windAngle;
 var autoWave, autoWindSpeed, autoWindAngle;
 var settingsMode = false;
-var autoMode = true;
+var autoMode = false;
 var conditionsLoaded = false;
 
 const navigatorObject = window.navigator;
@@ -98,7 +121,8 @@ $(function() {
 
 function toggleAutoMode () {
   autoMode = !autoMode
-  updateTables()
+  updateCTables()
+  updateConfig()
   console.log("AutoMode now " + autoMode)
 }
 
@@ -123,8 +147,8 @@ function toggleSettings () {
       }
     }
   }
-
-  updateTables()
+  updateSailTables()
+  updateConfig()
 
   if (!settingsMode) {
     console.log('Saving config...');
@@ -218,12 +242,12 @@ function handleFiles () {
 }
 
 function onReaderLoad(event){
-    sailconfig = JSON.parse(event.target.result)
-    // console.log('Imported json: %', JSON.stringify(sailconfig))
-    saveOptions(sailconfig.options)
-    saveConfig()
-    readConfig()
-    updateTables()
+  sailconfig = JSON.parse(event.target.result)
+  // console.log('Imported json: %', JSON.stringify(sailconfig))
+  saveConfig()
+  saveOptions(sailconfig.options)
+  sleep(1000)
+  location.reload();
 }
 
 function uploadConfig () {
@@ -258,7 +282,7 @@ function handleMessage (data) {
         autoWindAngle = value
         break
     }
-    updateTables();
+    updateCTables();
   }
 }
 
@@ -330,7 +354,7 @@ function prev (sailName, partName, marker) {
   }
   sailconfig.conditions[wave][windSpeed][windAngle][sailName][partName].marker = markers[pos];
   // console.log(marker, " => ", markers[pos]);
-  updateTables();
+  updateSailTables();
 }
 
 function next (sailName, partName, marker) {
@@ -344,7 +368,7 @@ function next (sailName, partName, marker) {
   }
   sailconfig.conditions[wave][windSpeed][windAngle][sailName][partName].marker = markers[pos];
   // console.log(marker, " => ", markers[pos]);
-  updateTables();
+  updateSailTables()
 }
 
 function changeAdvice (sailName, partName, currentAdvice) {
@@ -357,7 +381,7 @@ function changeAdvice (sailName, partName, currentAdvice) {
       advice = '-'
     }
     sailconfig.conditions[wave][windSpeed][windAngle][sailName][partName].advice = advice
-    updateTables();
+    updateSailTables();
   }
 }
 
@@ -370,7 +394,8 @@ function nextWave () {
     pos = 0
   }
   wave = conditions[pos]
-  updateTables();
+  updateCTables()
+  updateSailTables()
 }
 
 function nextWindSpeed () {
@@ -382,7 +407,8 @@ function nextWindSpeed () {
     pos = 0
   }
   windSpeed = conditions[pos]
-  updateTables();
+  updateCTables()
+  updateSailTables()
 }
 
 
@@ -395,7 +421,8 @@ function nextWindAngle () {
     pos = 0
   }
   windAngle = conditions[pos]
-  updateTables();
+  updateCTables()
+  updateSailTables()
 }
 
 function selectConditions () {
@@ -406,7 +433,8 @@ function selectConditions () {
   } 
 }
 
-function updateTables () {
+function updateCTables () {
+  if (!workingConfig) { return }
   selectConditions()
 	var innerHTML = '';
 	innerHTML += `<div class="cTable"><table id="cTable">`;
@@ -420,7 +448,10 @@ function updateTables () {
 
   var cTableEl = document.querySelector('#cTable');
   cTableEl.innerHTML = innerHTML;
-  
+}
+
+function updateSailTables () {
+  if (!workingConfig) { return }
 	var evenOneven="even";
   var display;
   if (settingsMode) {
@@ -430,7 +461,6 @@ function updateTables () {
   }
 	innerHTML = '';
 	innerHTML += `<div class="sailTable"><table id="sailTable">`;
-
   
 	for (const [sailName, sailObject] of Object.entries(sailconfig.conditions[wave][windSpeed][windAngle])) {
 	  innerHTML += `<tr><td class="sail" colspan="100%">${sailName}</td></tr>`;
@@ -446,8 +476,16 @@ function updateTables () {
 	innerHTML += `</table></div>`;
   var sailTableEl = document.querySelector('#sailTable');
   sailTableEl.innerHTML = innerHTML;
+}
 
-  // The config partA
+function updateConfig() {
+  var display;
+  if (settingsMode) {
+    display = 'block';
+  } else {
+    display = 'none';
+  }
+  // The config part
   var autoModeText = ''
   if (autoMode) {
     autoModeText = 'Auto selection of condiftions is enabled'
@@ -484,7 +522,8 @@ function updateTables () {
 <div id="config"></div>
 
 <script>
-  updateTables();
+  updateConfig()
+  checkWorkingConfig()
 </script>
 
 </body>

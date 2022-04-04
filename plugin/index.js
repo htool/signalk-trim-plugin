@@ -162,6 +162,8 @@ module.exports = function(app, options) {
       // app.debug('Options: %j', Object.entries(options.sails));
 
       const sailconfigFile = path.join(app.getDataDirPath(), 'config.json')
+      const sailOptionsFile = app.getDataDirPath() + '.json'
+      app.debug('sailOptionsFile: %s', sailOptionsFile)
       var currentCondition = {}
       var averageWave = []
       var averageWindSpeed = []
@@ -201,6 +203,7 @@ module.exports = function(app, options) {
 	        res.contentType("application/json")
           writeOptions(req.body);
           res.sendStatus(200);
+          // restartPlugin();
 	      })
 	      router.get("/readConfig", (req, res) => {
 	        res.contentType("application/json")
@@ -319,10 +322,13 @@ module.exports = function(app, options) {
         }
       }
 
-      function writeOptions (options) {
+      function writeOptions (newoptions) {
+        var options = app.readPluginOptions();
         try {
-          app.debug('Plugin options to save: %s', JSON.stringify(options));
-          app.savePluginOptions(options, () => {app.debug('Plugin options saved')});
+          // app.savePluginOptions(options, () => {app.debug('Plugin options saved')});
+          // fs.writeFileSync(sailOptionsFile, JSON.stringify(options));
+          // app.readPluginOptions()
+          restartPlugin(newoptions)
         } catch (err) {
           console.error(err)
         }
@@ -358,7 +364,6 @@ module.exports = function(app, options) {
                     if (storedMarker == '-') {
                       //app.debug('Skipping storedMarker: %s', storedMarker);
                     } else {
-                      app.debug('storedMarker: %s', storedMarker);
                       sailconfig.conditions[wave][windSpeed][windAngle][sailName][partName].marker = storedMarker;
                     }
                   } catch (error) {
