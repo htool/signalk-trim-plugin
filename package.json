@@ -1,0 +1,25 @@
+{
+  "description": "Trim webapp that auto detects conditions and allows custom trim markers",
+  "keywords": [
+    "signalk-node-server-plugin",
+    "signalk-webapp"
+  ],
+  "license": "ISC",
+  "author": "hans@defect.org",
+  "main": "plugin/index.js",
+  "name": "signalk-trim-plugin",
+  "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/htool/signalk-trim-plugin.git"
+  },
+  "bugs": {
+    "url": "https://github.com/htool/signalk-trim-plugin/issues"
+  },
+  "homepage": "https://github.com/htool/signalk-trim-plugin#readme",
+  "dependencies": {
+    "express": "^4.17.2",
+    "jquery": "^3.6.0",
+    "lodash": "^4.17.21"
+  }
+}

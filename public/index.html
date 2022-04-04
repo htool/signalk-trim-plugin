@@ -1,0 +1,485 @@
+<html>
+<head>
+  <META http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <META http-equiv="Pragma" content="no-cache" />
+  <META http-equiv="Expires" content="0" />
+  <META content="IE=11.0000" http-equiv="X-UA-Compatible">
+  <META charset="utf-8">
+  <META name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <META name="navico-store" content="mfd-insight-store">
+  <title>Sail Trim assistant</title>
+  <script>document.write('<link rel="stylesheet" href="style.css?ver=' + Math.floor(Math.random() * 1000) + '">');</script>
+  <script type='text/javascript' src='/jquery/dist/jquery.min.js'></script>
+</head>
+<body>
+
+<script>
+
+const urlParams = new URLSearchParams(window.location.search);
+
+// Set day or night mode
+var dayNight = urlParams.get('mode');
+
+var mfd_name = urlParams.get('mfd_name');
+var mfd_model_detail = urlParams.get('mfd_model_detail');
+var settingsMode = false;
+
+// Redirect console to html
+if (mfd_name != null) {
+  if (typeof console  != "undefined")
+    if (typeof console.log != 'undefined')
+      console.olog = console.log;
+    else
+      console.olog = function() {};
+  console.log = function(message) {
+    console.olog(message);
+    $('#debugDiv').append('<p>' + message + '</p>');
+  };
+  console.error = console.debug = console.info =  console.log
+}
+
+// For now
+if (mfd_name != null) {
+  setTimeout(function(){
+    console.log("setTimeout reload now");
+    window.location.reload(1);
+  }, 300000);
+}
+
+// Give MFD a fresh button
+if (mfd_model_detail != null) {
+  console.log('mfd_model_detail=' + mfd_model_detail + ' - including refresh button');
+  document.write('<div id="divfix"><a href="#" onclick="window.location.reload(true);"><img src ="refresh.png"/></a></div>');
+}
+
+function settingSave() {
+  var innerHTML = '';
+  if (settingsMode) {
+    innerHTML = `<a href="#" onclick="toggleSettings();"><img src ="saveconfig.png"/></a>`;
+  } else {
+    innerHTML = `<a href="#" onclick="toggleSettings();"><img src ="settings.png"/></a>`;
+  }
+  var settingSaveEl = document.querySelector('#settingSave');
+  settingSaveEl.innerHTML = innerHTML;
+}
+
+
+var connected=false;
+var instantReconnect = false;
+var ws;
+var wsNr = 0;
+
+var options = {};
+var sailconfig = {};
+var wave, windSpeed, windAngle;
+var autoWave, autoWindSpeed, autoWindAngle;
+var settingsMode = false;
+var autoMode = true;
+
+const navigatorObject = window.navigator;
+/*
+for(let i in navigator){
+  document.write(i + ': ' + navigatorObject[i] + '<br>');
+}
+*/
+
+$(function() {
+    $(window).focus(function() {
+      // console.log('Focus');
+      if (mfd_name != null) {
+        location.reload();
+      }
+    });
+    $(window).blur(function() {
+        // console.log('Blur');
+    });
+});
+
+function toggleAutoMode () {
+  autoMode = !autoMode
+  updateTables()
+  console.log("AutoMode now " + autoMode)
+}
+
+function toggleSettings () {
+  settingsMode = !settingsMode;
+  var x = document.getElementsByClassName("button");
+  for(i=0; i < x.length ; i++) {
+    if (settingsMode) {
+      x[i].style.display = "block";
+    } else {
+      x[i].style.display = "none";
+    }
+  }
+
+  if (mfd_name != null) {  // Don't show on MFD
+    var x = document.getElementsByClassName("config");
+    for(i=0; i < x.length ; i++) {
+      if (settingsMode) {
+        x[i].style.display = "inline-block";
+      } else {
+        x[i].style.display = "none";
+      }
+    }
+  }
+
+  updateTables()
+
+  if (!settingsMode) {
+    console.log('Saving config...');
+    saveConfig();
+    console.log('Saving options...');
+    saveOptions(sailconfig.options)
+  }
+  settingSave();
+}
+
+function readOptions () {
+  $.ajax({
+    url: "/plugins/signalk-trim-plugin/options",
+    async: false,
+    dataType: 'json',
+    success: function(data) {
+      options = data;
+    }
+  });
+}
+
+function readConfig () {
+  $.ajax({
+    url: "/plugins/signalk-trim-plugin/readConfig",
+    async: false,
+    dataType: 'json',
+    success: function(data) {
+      sailconfig = data;
+    }
+  });
+}
+
+function saveConfig () {
+  $.ajax({
+    type: "POST",
+    url: "/plugins/signalk-trim-plugin/saveConfig",
+    contentType: 'application/json',
+    async: false,
+    data: JSON.stringify(sailconfig),
+    dataType: 'json',
+    success: function(data) {
+      console.log('saveConfig ok');
+    },
+    failure: function(errMsg) {
+      console.log('saveConfig failed: ', errMsg);
+    }
+  });
+}
+
+function saveOptions (options) {
+  //console.log('saveOptions: options: %s', options)
+  $.ajax({
+    type: "POST",
+    url: "/plugins/signalk-trim-plugin/saveOptions",
+    contentType: 'application/json',
+    async: false,
+    data: JSON.stringify(options),
+    dataType: 'json',
+    success: function(data) {
+      console.log('saveOptions ok');
+    },
+    failure: function(errMsg) {
+      console.log('saveOptions failed: ', errMsg);
+    }
+  });
+}
+
+function downloadConfig () {
+  // Convert JSON Array to string.
+  var json = JSON.stringify(sailconfig);
+
+  // Convert JSON string to BLOB.
+  json = [json];
+  var blob = new Blob(json, { type: "application/json;charset=utf-8" });
+  var url = window.URL || window.webkitURL;
+  link = url.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.download = "sailtrim.json";
+  a.href = link;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+
+function handleFiles () {
+  console.log("this.files: %j", this.files[0]);
+  var reader = new FileReader();
+  reader.onload = onReaderLoad;
+  reader.readAsText(this.files[0]);
+}
+
+function onReaderLoad(event){
+    sailconfig = JSON.parse(event.target.result)
+    // console.log('Imported json: %j', sailconfig)
+    updateTables();
+}
+
+function uploadConfig () {
+  console.log('filesElem: %s', JSON.stringify(filesElem));
+}
+
+function getRandomInt(max) {
+  return Math.floor(Math.random() * max);
+}
+
+function getRandomInt(max) {
+  return Math.floor(Math.random() * max);
+}
+
+function getRandomKey (obj) {
+  var length = Object.keys(obj).length;
+  return Object.keys(obj)[getRandomInt(length)]
+}
+
+function handleMessage (data) {
+  if (!settingsMode && autoMode) {
+    var path = data.updates[0].values[0].path.split('.')[2]
+    var value = data.updates[0].values[0].value
+    switch (path) {
+      case 'wave':
+        autoWave = value
+        break
+      case 'windSpeed':
+        autoWindSpeed = value
+        break
+      case 'windAngle':
+        autoWindAngle = value
+        break
+    }
+    updateTables();
+  }
+}
+
+
+function connect () {
+  if (connected || wsNr >= 1) {
+    return
+  };
+  ws = new WebSocket((window.location.protocol === 'https:' ? 'wss' : 'ws') + "://" + window.location.host + "/signalk/v1/stream?subscribe=none");
+	ws.onopen = function() {
+    wsNr++;
+	  connected = true;
+
+    var subscriptionObject = {
+      "context": "vessels.self",
+      "subscribe": [{"path": 'environment.sailtrim.wave'}, {"path": 'environment.sailtrim.windSpeed'}, {"path": 'environment.sailtrim.windAngle'}]
+    }
+    var subscriptionMessage = JSON.stringify(subscriptionObject);
+    // console.log("subscriptionMessage: " + subscriptionMessage);
+    ws.send(subscriptionMessage);
+
+    ws.onmessage = function(event) {
+      if (event.data.includes('signalk-server')) {
+        welcomeMessage = event.data;
+        // console.log("Skipping welcome message: " + welcomeMessage)
+      } else {
+        handleMessage(JSON.parse(event.data))
+      }
+    }
+
+	  ws.onclose = function() {
+	    connected = false;
+      wsNr--;
+	    console.log("WebSocket closed - wsNr: " + wsNr);
+      if (instantReconnect) {
+        instantReconnect = false;
+        connect();
+      } else {
+        setTimeout(function() {
+          connect();
+        }, 1000);
+      }
+	  }
+
+	  ws.onerror = function(err) {
+	    console.log("WebSocket connection error: " + err.message + " - closing connection");
+      ws.close();
+	  }
+    
+  }
+}
+
+// Start websocket
+connect();
+
+// Get plugin options loaded
+// readOptions();
+readConfig();
+
+
+function prev (sailName, partName, marker) {
+  // console.log(sailName, partName, marker);
+  var markers = sailconfig.markers[sailName][partName].markers.split(',');
+  var pos = markers.indexOf(marker);
+  var length = markers.length;
+  pos = pos - 1;
+  if (pos < 0) {
+    pos = length - 1
+  }
+  sailconfig.conditions[wave][windSpeed][windAngle][sailName][partName].marker = markers[pos];
+  // console.log(marker, " => ", markers[pos]);
+  updateTables();
+}
+
+function next (sailName, partName, marker) {
+  // console.log(sailName, partName, marker);
+  var markers = sailconfig.markers[sailName][partName].markers.split(',');
+  var pos = markers.indexOf(marker);
+  var length = markers.length;
+  pos = pos + 1;
+  if (pos == length) {
+    pos = 0
+  }
+  sailconfig.conditions[wave][windSpeed][windAngle][sailName][partName].marker = markers[pos];
+  // console.log(marker, " => ", markers[pos]);
+  updateTables();
+}
+
+function changeAdvice (sailName, partName, currentAdvice) {
+  if (settingsMode == true && mfd_model_detail == null) {
+    var advice = prompt("Update advice:", currentAdvice);
+    if (advice == null) {
+      advice = currentAdvice
+    }
+    if (advice == "") {
+      advice = '-'
+    }
+    sailconfig.conditions[wave][windSpeed][windAngle][sailName][partName].advice = advice
+    updateTables();
+  }
+}
+
+function nextWave () {
+  var conditions = Object.keys(sailconfig.conditions);
+  var pos = conditions.indexOf(wave);
+  var length = conditions.length;
+  pos = pos + 1;
+  if (pos == length) {
+    pos = 0
+  }
+  wave = conditions[pos]
+  updateTables();
+}
+
+function nextWindSpeed () {
+  var conditions = Object.keys(sailconfig.conditions[wave]);
+  var pos = conditions.indexOf(windSpeed);
+  var length = conditions.length;
+  pos = pos + 1;
+  if (pos == length) {
+    pos = 0
+  }
+  windSpeed = conditions[pos]
+  updateTables();
+}
+
+
+function nextWindAngle () {
+  var conditions = Object.keys(sailconfig.conditions[wave][windSpeed]);
+  var pos = conditions.indexOf(windAngle);
+  var length = conditions.length;
+  pos = pos + 1;
+  if (pos == length) {
+    pos = 0
+  }
+  windAngle = conditions[pos]
+  updateTables();
+}
+
+function selectConditions () {
+  if (autoMode) {
+    wave = autoWave || Object.keys(sailconfig.conditions)[0]
+    windSpeed = autoWindSpeed || Object.keys(sailconfig.conditions[wave])[0]
+    windAngle = autoWindAngle || Object.keys(sailconfig.conditions[wave][windSpeed])[0]
+  } 
+}
+
+function updateTables () {
+  selectConditions()
+	var innerHTML = '';
+	innerHTML += `<div class="cTable"><table id="cTable">`;
+	innerHTML += `<tr class="cTableHeader"><td>WAVES</td><td>WIND SPEED</td><td>WIND ANGLE</td></tr>`;
+	if (autoMode) {
+    innerHTML += `<tr class="cTableCondition"><td class="cbutton" onclick="nextWave()">${wave}</td><td class="cbutton" onclick="nextWindSpeed()">${windSpeed}</td><td class="cbutton" onclick="nextWindAngle()">${windAngle}</td></tr>`;
+	} else {
+    innerHTML += `<tr class="cTableCondition"><td class="cbutton" onclick="nextWave()">${wave} &#8250;</td><td class="cbutton" onclick="nextWindSpeed()">${windSpeed} &#8250;</td><td class="cbutton" onclick="nextWindAngle()">${windAngle} &#8250;</td></tr>`;
+  }
+  innerHTML += `</table>`;
+
+  var cTableEl = document.querySelector('#cTable');
+  cTableEl.innerHTML = innerHTML;
+  
+	var evenOneven="even";
+  var display;
+  if (settingsMode) {
+    display = 'block';
+  } else {
+    display = 'none';
+  }
+	innerHTML = '';
+	innerHTML += `<div class="sailTable"><table id="sailTable">`;
+	for (const [sailName, sailObject] of Object.entries(sailconfig.conditions[wave][windSpeed][windAngle])) {
+	  innerHTML += `<tr><td class="sail" colspan="100%">${sailName}</td></tr>`;
+	  for (const [partName, partObject] of Object.entries(sailObject)) {
+	    innerHTML += `<tr id="${evenOneven}"><td class="part">${partName}</td><td onclick="changeAdvice('${sailName}','${partName}','${partObject.advice}')" class="advice">${partObject.advice}</td><td><button style="display: ${display};" class="button" onclick="prev('${sailName}','${partName}','${partObject.marker}')">&#8249;</button></td><td class="setting">${partObject.marker}</td><td><button style="display: ${display};" class="button" onclick="next('${sailName}','${partName}','${partObject.marker}')">&#8250;</button></td></tr><tr>`;
+	    if (evenOneven == "even") {
+	      evenOneven = "oneven"
+	    } else {
+	      evenOneven = "even"
+	    }
+	  }
+	}
+	innerHTML += `</table></div>`;
+  var sailTableEl = document.querySelector('#sailTable');
+  sailTableEl.innerHTML = innerHTML;
+
+  // The config partA
+  var autoModeText = ''
+  if (autoMode) {
+    autoModeText = 'Auto selection of condiftions is enabled'
+  } else {
+    autoModeText = 'Auto selection of condiftions is disabled'
+  }
+  innerHTML = `<button class="config" style="display: ${display};" onclick="toggleAutoMode()">${autoModeText}</button>`;
+  if (mfd_name == null) {
+    innerHTML += `<button class="config" style="display: ${display};" onclick="downloadConfig()">Export config</button>`;
+    innerHTML += `<input type="file" accept="application/json" id="importConfig" hidden/>`;
+    innerHTML += `<label class="config" for="importConfig" style="display: ${display};" onclick="uploadConfig()">Import config</label>`;
+  }
+  var configEl = document.querySelector('#config');
+  configEl.innerHTML = innerHTML;
+  if (mfd_name == null) {
+    filesElem = document.getElementById("importConfig");
+    filesElem.addEventListener("change", handleFiles, false);
+  }
+}
+
+
+</script>
+<div id="debugDiv">
+</div>
+
+<div id="settingSave">
+</div>
+<script>
+  settingSave();
+</script>
+
+<table id="cTable"></table>
+<table id="sailTable"></table>
+<div id="config"></div>
+
+<script>
+  updateTables();
+</script>
+
+</body>
+</html>
