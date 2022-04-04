@@ -75,6 +75,7 @@ var wave, windSpeed, windAngle;
 var autoWave, autoWindSpeed, autoWindAngle;
 var settingsMode = false;
 var autoMode = true;
+var conditionsLoaded = false;
 
 const navigatorObject = window.navigator;
 /*
@@ -218,8 +219,11 @@ function handleFiles () {
 
 function onReaderLoad(event){
     sailconfig = JSON.parse(event.target.result)
-    // console.log('Imported json: %j', sailconfig)
-    updateTables();
+    // console.log('Imported json: %', JSON.stringify(sailconfig))
+    saveOptions(sailconfig.options)
+    saveConfig()
+    readConfig()
+    updateTables()
 }
 
 function uploadConfig () {
@@ -426,6 +430,8 @@ function updateTables () {
   }
 	innerHTML = '';
 	innerHTML += `<div class="sailTable"><table id="sailTable">`;
+
+  
 	for (const [sailName, sailObject] of Object.entries(sailconfig.conditions[wave][windSpeed][windAngle])) {
 	  innerHTML += `<tr><td class="sail" colspan="100%">${sailName}</td></tr>`;
 	  for (const [partName, partObject] of Object.entries(sailObject)) {

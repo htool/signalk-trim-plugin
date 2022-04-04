@@ -159,7 +159,7 @@ module.exports = function(app, options) {
 
     plugin.start = function(options, restartPlugin) {
       app.debug('starting plugin')
-      app.debug('Options: %j', Object.entries(options.sails));
+      // app.debug('Options: %j', Object.entries(options.sails));
 
       const sailconfigFile = path.join(app.getDataDirPath(), 'config.json')
       var currentCondition = {}
@@ -266,15 +266,17 @@ module.exports = function(app, options) {
             value = Math.abs(value * radToDeg)
             break
         }
-        options[condition].forEach(function (conditionType) {
-          if (value >= conditionType.min && value <= conditionType.max) {
-            type = conditionType.type
+        if (typeof options[condition] != 'undefined') {
+          options[condition].forEach(function (conditionType) {
+            if (value >= conditionType.min && value <= conditionType.max) {
+              type = conditionType.type
+            }
+          });
+          if (currentCondition[condition] != type) {
+            currentCondition[condition] = type
+            app.debug("Condition changed: %f %s: %s", value, condition, type)
+            pushDelta(app, 'environment.sailtrim.'+ condition, type)
           }
-        });
-        if (currentCondition[condition] != type) {
-          currentCondition[condition] = type
-          app.debug("Condition changed: %f %s: %s", value, condition, type)
-          pushDelta(app, 'environment.sailtrim.'+ condition, type)
         }
       }
 
