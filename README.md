@@ -9,4 +9,4 @@ Inspired by the [Trimm Scheibe](https://cdn.compass24.de/media/image/2e/2b/b2/02
 
 
 ## Screenshot
-![Screenshot of Vulcan 12"]()
+![Screenshot of Vulcan 12"](https://raw.githubusercontent.com/htool/signalk-trim-plugin/main/images/screenshot-vulcan.png)
