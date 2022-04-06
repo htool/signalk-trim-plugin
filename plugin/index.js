@@ -21,6 +21,15 @@ module.exports = function(app, options) {
     description: plugin.description,
     properties: {
 
+      autoMode: {
+        type: 'boolean',
+        title: 'Start WebApp with auto detection of conditions'
+      },
+      adviceMode: {
+        type: 'boolean',
+        title: 'Start WebApp with advice showing'
+      },
+
       sails: {
 	      type: 'array',
 	      title: 'Add sails and performance related parts',

@@ -67,8 +67,6 @@ function checkWorkingConfig () {
         if (typeof Object.keys(sailconfig.conditions[wave][windSpeed])[0] != 'undefined') {
           windAngle = Object.keys(sailconfig.conditions[wave][windSpeed])[0]
           workingConfig = true
-          adviceMode = !adviceMode  // For some reason I can't get adviceMode to initialize as true, so doing it here
-          autoMode = !autoMode
           updateCTables()
           updateSailTables()
         }
@@ -331,8 +329,14 @@ function connect () {
 connect();
 
 // Get plugin options loaded
-// readOptions();
+readOptions();
 readConfig();
+
+// Set modes
+console.log('options.configuration.autoMode: ' + JSON.stringify(options.configuration.autoMode))
+autoMode = options.configuration.autoMode
+console.log('options.configuration.adviceMode: ' + JSON.stringify(options.configuration.adviceMode))
+adviceMode = options.configuration.adviceMode
 
 
 function prev (sailName, partName, marker) {
