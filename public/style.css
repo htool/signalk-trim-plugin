@@ -13,7 +13,7 @@ body {
   background-color: black;
   color: white;
   font-family: Handset;
-  font-size: 20px;
+  font-size: calc(16px + 1vw);
   margin-left: 2px;
   margin-right: 2px;
   overflow-anchor: none;
@@ -37,8 +37,8 @@ body {
 }
 
 #settingSave {
-  top: 12;
-  right: 3;
+  top: calc(12px + 0.3vw);
+  right: calc(3px + 0.5vw);
   opacity: 0.5;
   position: fixed;
 }
@@ -72,7 +72,7 @@ td {
 
 .cTable {
   text-align:center;
-  font-size: 110%;
+  font-size: calc(16px + 1vw);
   white-space:nowrap;
   padding-left:5px;
   padding-right:5px;
@@ -80,7 +80,7 @@ td {
 }
 
 .cTableHeader {
-  font-size: 130%;
+  font-size: calc(16px + 1vw);
   background-color: darkgreen;
   white-space:nowrap;
   padding-left: 5px;
@@ -89,15 +89,16 @@ td {
 }
 
 .cTableCondition {
-  font-size: 110%;
+  font-size: calc(16px + 1vw);
   padding-left: 10px;
   padding-right: 10px;
+  vertical-align: top;
   g-origin:50% 50%;
 }
 
 .sailTable {
   text-align:center;
-  font-size: 110%;
+  font-size: calc(16px + 1vw);
   white-space:nowrap;
   padding-left:5px;
   padding-right:5px;
@@ -106,7 +107,7 @@ td {
 
 .sail {
   text-align:center;
-  font-size: 130%;
+  font-size: calc(16px + 1vw);
   background-color: darkgreen;
   white-space:nowrap;
   width:100%;
@@ -118,7 +119,7 @@ td {
 
 .part {
   text-align:left;
-  font-size: 120%;
+  font-size: calc(16px + 1vw);
   white-space:nowrap;
   padding-left:10px;
   padding-right:10px;
@@ -127,7 +128,7 @@ td {
 
 .advice {
   text-align:center;
-  font-size: 120%;
+  font-size: calc(16px + 1vw);
   min-width: 40px;
   white-space:nowrap;
   padding-left:10px;
@@ -137,7 +138,7 @@ td {
 
 .setting {
   text-align:center;
-  font-size: 130%;
+  font-size: calc(16px + 1vw);
   white-space:nowrap;
   padding-left:10px;
   padding-right:10px;
@@ -147,7 +148,7 @@ td {
 
 .cbutton {
   text-align:center;
-  font-size: 100%;
+  font-size: calc(16px + 1vw);
   flex-wrap: wrap;
   padding-left:10px;
   padding-right:10px;
@@ -159,7 +160,7 @@ td {
   color: white;
   background-color: #003300;
   border: none;
-  font-size: 100%;
+  font-size: calc(16px + 1vw);
   flex-wrap: wrap;
   margin: 0px 0px;
   padding-left:15px;
@@ -180,11 +181,12 @@ td {
   color: white;
   background-color: #003300;
   border: none;
-  font-size: 110%;
+  font-size: calc(16px + 1vw);
   margin: 10px 10px;
   padding-left: 20px;
   padding-right: 20px;
 }
+
 .switchconfig {
   width: fit-content;
   text-align:center;
@@ -192,68 +194,18 @@ td {
   color: white;
   background-color: black;
   border: none;
-  font-size: 110%;
+  font-size: calc(16px + 1vw);
   margin: 10px 10px;
   padding-left: 20px;
   padding-right: 20px;
 }
 
 .button.active{
-  font-size: 20px;
+  font-size: calc(16px + 1vw);
   background-color: darkgreen;
 }
 
 .button.touched {
-  font-size: 20px;
+  font-size: calc(16px + 1vw);
   background-color: lightgreen;
 }
-
-.form-switch {
-  display: inline-block;
-  cursor: pointer;
-  background-color: black;
-  -webkit-tap-highlight-color: transparent;
-}
-.form-switch i {
-  position: relative;
-  display: inline-block;
-  margin-right: .5rem;
-  width: 46px;
-  height: 26px;
-  background-color: #e6e6e6;
-  border-radius: 23px;
-  vertical-align: text-bottom;
-  transition: all 0.3s linear;
-}
-.form-switch i::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  width: 42px;
-  height: 22px;
-  background-color: #fff;
-  border-radius: 11px;
-  transform: translate3d(2px, 2px, 0) scale3d(1, 1, 1);
-  transition: all 0.25s linear;
-}
-.form-switch i::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  width: 22px;
-  height: 22px;
-  background-color: #fff;
-  border-radius: 11px;
-  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.24);
-  transform: translate3d(2px, 2px, 0);
-  transition: all 0.2s ease-in-out;
-}
-.form-switch:active i::after {
-  width: 28px;
-  transform: translate3d(2px, 2px, 0);
-}
-.form-switch:active input:checked + i::after { transform: translate3d(16px, 2px, 0); }
-.form-switch input { display: none; }
-.form-switch input:checked + i { background-color: darkgreen; }
-.form-switch input:checked + i::before { transform: translate3d(18px, 2px, 0) scale3d(0, 0, 0); }
-.form-switch input:checked + i::after { transform: translate3d(22px, 2px, 0); }

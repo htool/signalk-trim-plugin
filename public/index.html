@@ -16,18 +16,17 @@
 <script>
 
 const urlParams = new URLSearchParams(window.location.search);
-const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // Set day or night mode
 var dayNight = urlParams.get('mode');
 
-var mfd_name = urlParams.get('mfd_name');
+var mfd_model = urlParams.get('mfd_model');
 var mfd_model_detail = urlParams.get('mfd_model_detail');
 var settingsMode = false;
 var workingConfig = false;
 
 // Redirect console to html
-if (mfd_name != null) {
+if (mfd_model != null) {
   if (typeof console  != "undefined")
     if (typeof console.log != 'undefined')
       console.olog = console.log;
@@ -40,13 +39,17 @@ if (mfd_name != null) {
   console.error = console.debug = console.info =  console.log
 }
 
+console.log('mfd_model: ' + mfd_model)
+
 // For now
-if (mfd_name != null) {
+/*
+if (mfd_model != null) {
   setTimeout(function(){
-    console.log("setTimeout reload now");
-    window.location.reload(1);
-  }, 300000);
+    $('#debugDiv').append('Reloading page now...');
+    location.reload();
+  }, 30000);
 }
+*/
 
 // Give MFD a refresh button
 if (mfd_model_detail != null) {
@@ -64,6 +67,8 @@ function checkWorkingConfig () {
         if (typeof Object.keys(sailconfig.conditions[wave][windSpeed])[0] != 'undefined') {
           windAngle = Object.keys(sailconfig.conditions[wave][windSpeed])[0]
           workingConfig = true
+          adviceMode = !adviceMode  // For some reason I can't get adviceMode to initialize as true, so doing it here
+          autoMode = !autoMode
           updateCTables()
           updateSailTables()
         }
@@ -88,7 +93,7 @@ function settingSave() {
 
 
 var connected=false;
-var instantReconnect = false;
+var instantReconnect=false;
 var ws;
 var wsNr = 0;
 
@@ -96,34 +101,20 @@ var options = {};
 var sailconfig = {};
 var wave, windSpeed, windAngle;
 var autoWave, autoWindSpeed, autoWindAngle;
-var settingsMode = false;
-var autoMode = true;
-var conditionsLoaded = false;
-
-const navigatorObject = window.navigator;
-/*
-for(let i in navigator){
-  document.write(i + ': ' + navigatorObject[i] + '<br>');
-}
-*/
-
-$(function() {
-    $(window).focus(function() {
-      // console.log('Focus');
-      if (mfd_name != null) {
-        location.reload();
-      }
-    });
-    $(window).blur(function() {
-        // console.log('Blur');
-    });
-});
+var settingsMode, autoMode, adviceMode, conditionsLoaded = true
 
 function toggleAutoMode () {
   autoMode = !autoMode
   updateCTables()
   updateConfig()
   console.log("AutoMode now " + autoMode)
+}
+
+function toggleAdviceMode () {
+  adviceMode = !adviceMode
+  updateSailTables()
+  updateConfig()
+  console.log("adviceMode now " + adviceMode)
 }
 
 function toggleSettings () {
@@ -137,7 +128,7 @@ function toggleSettings () {
     }
   }
 
-  if (mfd_name != null) {  // Don't show on MFD
+  if (mfd_model != null) {  // Don't show on MFD
     var x = document.getElementsByClassName("config");
     for(i=0; i < x.length ; i++) {
       if (settingsMode) {
@@ -466,7 +457,11 @@ function updateSailTables () {
 	for (const [sailName, sailObject] of Object.entries(sailconfig.conditions[wave][windSpeed][windAngle])) {
 	  innerHTML += `<tr><td class="sail" colspan="100%">${sailName}</td></tr>`;
 	  for (const [partName, partObject] of Object.entries(sailObject)) {
-	    innerHTML += `<tr id="${evenOneven}"><td class="part">${partName}</td><td onclick="changeAdvice('${sailName}','${partName}','${partObject.advice}')" class="advice">${partObject.advice}</td><td><button style="display: ${display};" class="button" onclick="prev('${sailName}','${partName}','${partObject.marker}')">&#8249;</button></td><td class="setting">${partObject.marker}</td><td><button style="display: ${display};" class="button" onclick="next('${sailName}','${partName}','${partObject.marker}')">&#8250;</button></td></tr><tr>`;
+	    innerHTML += `<tr id="${evenOneven}"><td class="part">${partName}</td>`
+      if (adviceMode) {
+        innerHTML += `<td onclick="changeAdvice('${sailName}','${partName}','${partObject.advice}')" class="advice">${partObject.advice}</td>`
+      }
+      innerHTML += `<td><button style="display: ${display};" class="button" onclick="prev('${sailName}','${partName}','${partObject.marker}')">&#8249;</button></td><td class="setting">${partObject.marker}</td><td><button style="display: ${display};" class="button" onclick="next('${sailName}','${partName}','${partObject.marker}')">&#8250;</button></td></tr><tr>`;
 	    if (evenOneven == "even") {
 	      evenOneven = "oneven"
 	    } else {
@@ -489,19 +484,25 @@ function updateConfig() {
   // The config part
   var autoModeText = ''
   if (autoMode) {
-    autoModeText = 'Auto selection of condiftions is enabled'
+    autoModeText = 'Auto selection of conditions is enabled'
   } else {
-    autoModeText = 'Auto selection of condiftions is disabled'
+    autoModeText = 'Auto selection of conditions is disabled'
+  }
+  if (adviceMode) {
+    adviceModeText = 'Advice is enabled'
+  } else {
+    adviceModeText = 'Advice is disabled'
   }
   innerHTML = `<button class="config" style="display: ${display};" onclick="toggleAutoMode()">${autoModeText}</button>`;
-  if (mfd_name == null) {
+  innerHTML += `<button class="config" style="display: ${display};" onclick="toggleAdviceMode()">${adviceModeText}</button>`;
+  if (mfd_model == null) {
     innerHTML += `<button class="config" style="display: ${display};" onclick="downloadConfig()">Export config</button>`;
     innerHTML += `<input type="file" accept="application/json" id="importConfig" hidden/>`;
     innerHTML += `<label class="config" for="importConfig" style="display: ${display};" onclick="uploadConfig()">Import config</label>`;
   }
   var configEl = document.querySelector('#config');
   configEl.innerHTML = innerHTML;
-  if (mfd_name == null) {
+  if (mfd_model == null) {
     filesElem = document.getElementById("importConfig");
     filesElem.addEventListener("change", handleFiles, false);
   }
@@ -509,8 +510,6 @@ function updateConfig() {
 
 
 </script>
-<div id="debugDiv">
-</div>
 
 <div id="settingSave">
 </div>
@@ -521,6 +520,8 @@ function updateConfig() {
 <table id="cTable"></table>
 <table id="sailTable"></table>
 <div id="config"></div>
+<div id="debugDiv">
+</div>
 
 <script>
   updateConfig()
