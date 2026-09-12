@@ -17,6 +17,9 @@
     "url": "https://github.com/htool/signalk-trim-plugin/issues"
   },
   "homepage": "https://github.com/htool/signalk-trim-plugin#readme",
+  "scripts": {
+    "test": "node scripts/test-npm-publish-check.js"
+  },
   "signalk": {
     "appIcon": "./signalk-logo.png",
     "displayName": "Sail trim"

@@ -23,5 +23,9 @@ WebApp url: http://192.168.3.12:3000/signalk-trim-plugin/
 ```
 Where 192.168.3.12 is the IP you've added.
 
+## npm publish
+
+App Store installs come from the npm package [`signalk-trim-plugin`](https://www.npmjs.com/package/signalk-trim-plugin). A GitHub Action patch-bumps and publishes at most once per UTC day when `plugin/` or `public/` changed since the last release (`.github/workflows/release.yml`). Publishing uses [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) (GitHub OIDC). Once, as package owner on npmjs.com: **Package → Settings → Trusted Publisher → GitHub Actions**, with organization `htool`, repository `signalk-trim-plugin`, workflow filename `release.yml`, and allowed action `npm publish`.
+
 ## Screenshot
 ![Screenshot of Vulcan 12"](https://raw.githubusercontent.com/htool/signalk-trim-plugin/main/images/screenshot-vulcan.png)
