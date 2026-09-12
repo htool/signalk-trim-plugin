@@ -9,7 +9,7 @@
   <META name="navico-store" content="mfd-insight-store">
   <title>Sail Trim assistant</title>
   <script>document.write('<link rel="stylesheet" href="style.css?ver=' + Math.floor(Math.random() * 1000) + '">');</script>
-  <script type='text/javascript' src='/jquery/dist/jquery.min.js'></script>
+  <script type='text/javascript' src='jquery.min.js'></script>
 </head>
 <body>
 
@@ -150,7 +150,7 @@ function toggleSettings () {
 
 function readOptions () {
   $.ajax({
-    url: "/plugins/signalk-trim-plugin/options",
+    url: "/signalk/v1/api/signalk-trim-plugin/options",
     async: false,
     dataType: 'json',
     success: function(data) {
@@ -161,7 +161,7 @@ function readOptions () {
 
 function readConfig () {
   $.ajax({
-    url: "/plugins/signalk-trim-plugin/readConfig",
+    url: "/signalk/v1/api/signalk-trim-plugin/readConfig",
     async: false,
     dataType: 'json',
     success: function(data) {

@@ -196,34 +196,46 @@ module.exports = function(app, options) {
         ]
       };
     
+      function handleSchema(req, res) {
+        res.contentType("application/json")
+        res.send(JSON.stringify(schema))
+      }
+      function handleOptions(req, res) {
+        res.contentType("application/json")
+        var freshOptions = app.readPluginOptions();
+        res.send(JSON.stringify(freshOptions))
+      }
+      function handleReadConfig(req, res) {
+        res.contentType("application/json")
+        res.send(readConfig())
+      }
+
       plugin.registerWithRouter = function(router) {
 	      // Will appear here; plugins/signalk-trim-plugin/
 	      app.debug("registerWithRouter")
-	      router.get("/schema", (req, res) => {
-	        res.contentType("application/json")
-	        res.send(JSON.stringify(schema))
-	      })
-	      router.get("/options", (req, res) => {
-	        res.contentType("application/json")
-          var freshOptions = app.readPluginOptions();
-	        res.send(JSON.stringify(freshOptions))
-	      })
+	      router.get("/schema", handleSchema)
+	      router.get("/options", handleOptions)
 	      router.post("/saveOptions", (req, res) => {
 	        res.contentType("application/json")
           writeOptions(req.body);
           res.sendStatus(200);
           // restartPlugin();
 	      })
-	      router.get("/readConfig", (req, res) => {
-	        res.contentType("application/json")
-	        res.send(readConfig())
-	      })
+	      router.get("/readConfig", handleReadConfig)
 	      router.post("/saveConfig", (req, res) => {
 	        res.contentType("application/json")
           writeConfig(req.body);
           res.sendStatus(200);
 	      })
 	    }
+
+      // SK 2.x /plugins is admin-only. MFD/readonly clients use /signalk/v1/api.
+      plugin.signalKApiRoutes = function(router) {
+        router.get("/signalk-trim-plugin/schema", handleSchema)
+        router.get("/signalk-trim-plugin/options", handleOptions)
+        router.get("/signalk-trim-plugin/readConfig", handleReadConfig)
+        return router
+      }
 
       app.subscriptionmanager.subscribe(
         localSubscription,
