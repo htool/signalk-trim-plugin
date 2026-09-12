@@ -162,38 +162,41 @@ function readLocalVersion(cwd) {
   return pkg.version
 }
 
-function defaultNpmView(pkgName) {
+function npmEnv() {
   const env = Object.assign({}, process.env)
   delete env.NODE_AUTH_TOKEN
   delete env.NPM_TOKEN
   delete env.NPM_CONFIG_USERCONFIG
   env.npm_config_registry = 'https://registry.npmjs.org/'
+  return env
+}
+
+function runNpmView(pkgName, args) {
   const r = spawnSync(
     'npm',
-    [
-      'view',
-      pkgName,
-      'version',
-      'time',
-      '--json',
-      '--registry=https://registry.npmjs.org'
-    ],
+    ['view', pkgName].concat(args).concat(['--registry=https://registry.npmjs.org']),
     {
       encoding: 'utf8',
       cwd: require('os').tmpdir(),
-      env: env
+      env: npmEnv()
     }
   )
   if (r.status !== 0) {
     const err = (r.stderr || r.stdout || '').trim()
-    throw new Error('npm view ' + pkgName + ' failed: ' + err)
+    throw new Error('npm view ' + pkgName + ' ' + args.join(' ') + ' failed: ' + err)
   }
-  return r.stdout
+  return (r.stdout || '').trim()
+}
+
+function defaultNpmView(pkgName) {
+  const version = runNpmView(pkgName, ['version']).replace(/^"+|"+$/g, '')
+  const time = JSON.parse(runNpmView(pkgName, ['time', '--json']))
+  return { version: version, time: time }
 }
 
 function parseNpmView(raw) {
   const text = String(raw || '').trim()
-  const start = text.indexOf('{')
+  const start = text.search(/[{[]/)
   const jsonText = start >= 0 ? text.slice(start) : text
   try {
     return JSON.parse(jsonText)
