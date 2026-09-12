@@ -190,8 +190,25 @@ function runNpmView(pkgName, args) {
 
 function defaultNpmView(pkgName) {
   const version = runNpmView(pkgName, ['version']).replace(/^"+|"+$/g, '')
-  const time = JSON.parse(runNpmView(pkgName, ['time', '--json']))
-  return { version: version, time: time }
+  // time.<version> is parsed as a nested path (time.0.0.10 → time[0][0][10]).
+  const modified = runNpmView(pkgName, ['time.modified']).replace(/^"+|"+$/g, '')
+  return { version: version, time: { modified: modified } }
+}
+
+function publishTimeFromNpm(time, version) {
+  if (!time) return ''
+  if (typeof time === 'string') return time
+  if (Array.isArray(time)) {
+    for (let i = time.length - 1; i >= 0; i--) {
+      const nested = publishTimeFromNpm(time[i], version)
+      if (nested) return nested
+    }
+    return ''
+  }
+  if (typeof time === 'object') {
+    return time[version] || time.modified || time.created || ''
+  }
+  return ''
 }
 
 function parseNpmView(raw) {
@@ -227,16 +244,15 @@ function readNpmRelease(pkgName, runner) {
         JSON.stringify(info).slice(0, 300)
     )
   }
-  const timeMap = (info && info.time) || {}
-  const time = timeMap[version] || timeMap.modified || timeMap.created || ''
+  const time = publishTimeFromNpm(info && info.time, version)
   if (!time) {
     throw new Error(
       'npm view ' +
         pkgName +
         ' returned no publish time for ' +
         version +
-        '; timeKeys=' +
-        Object.keys(timeMap).join(',')
+        '; time=' +
+        JSON.stringify(info && info.time).slice(0, 300)
     )
   }
   return { version: version, time: time }

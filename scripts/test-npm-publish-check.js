@@ -71,6 +71,26 @@ assert.throws(function () {
   })
 }, /no version/)
 
+const fromArray = check.decide({
+  cwd: require('path').join(__dirname, '..'),
+  force: true,
+  changedFiles: [],
+  npmView: function () {
+    return { version: '0.0.10', time: ['2026-09-10T22:50:10.115Z'] }
+  }
+})
+assert.strictEqual(fromArray.lastPublishTime, '2026-09-10T22:50:10.115Z')
+
+const fromModified = check.decide({
+  cwd: require('path').join(__dirname, '..'),
+  force: true,
+  changedFiles: [],
+  npmView: function () {
+    return { version: '0.0.10', time: { modified: '2026-09-10T22:50:10.440Z' } }
+  }
+})
+assert.strictEqual(fromModified.lastPublishTime, '2026-09-10T22:50:10.440Z')
+
 const live = check.decide({
   cwd: require('path').join(__dirname, '..'),
   force: true,
