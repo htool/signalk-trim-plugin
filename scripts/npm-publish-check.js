@@ -165,10 +165,19 @@ function readLocalVersion(cwd) {
 function defaultNpmView(pkgName) {
   const env = Object.assign({}, process.env)
   delete env.NODE_AUTH_TOKEN
+  delete env.NPM_TOKEN
   delete env.NPM_CONFIG_USERCONFIG
+  env.npm_config_registry = 'https://registry.npmjs.org/'
   const r = spawnSync(
     'npm',
-    ['view', pkgName, '--json', '--registry=https://registry.npmjs.org'],
+    [
+      'view',
+      pkgName,
+      'version',
+      'time',
+      '--json',
+      '--registry=https://registry.npmjs.org'
+    ],
     {
       encoding: 'utf8',
       cwd: require('os').tmpdir(),
@@ -182,20 +191,50 @@ function defaultNpmView(pkgName) {
   return r.stdout
 }
 
+function parseNpmView(raw) {
+  const text = String(raw || '').trim()
+  const start = text.indexOf('{')
+  const jsonText = start >= 0 ? text.slice(start) : text
+  try {
+    return JSON.parse(jsonText)
+  } catch (err) {
+    throw new Error(
+      'npm view JSON parse failed: ' +
+        err.message +
+        ' :: ' +
+        text.slice(0, 300)
+    )
+  }
+}
+
 function readNpmRelease(pkgName, runner) {
   const run = runner || defaultNpmView
   const raw = run(pkgName)
-  const info = typeof raw === 'string' ? JSON.parse(raw) : raw
-  const version = info && info.version
+  const info = typeof raw === 'string' ? parseNpmView(raw) : raw
+  const version =
+    (info && info.version) ||
+    (info && info['dist-tags'] && info['dist-tags'].latest)
   if (!version) {
-    throw new Error('npm view ' + pkgName + ' returned no version')
+    throw new Error(
+      'npm view ' +
+        pkgName +
+        ' returned no version; keys=' +
+        Object.keys(info || {}).join(',') +
+        ' snippet=' +
+        JSON.stringify(info).slice(0, 300)
+    )
   }
-  const time =
-    (info.time && info.time[version]) ||
-    (info.time && info.time.modified) ||
-    ''
+  const timeMap = (info && info.time) || {}
+  const time = timeMap[version] || timeMap.modified || timeMap.created || ''
   if (!time) {
-    throw new Error('npm view ' + pkgName + ' returned no publish time')
+    throw new Error(
+      'npm view ' +
+        pkgName +
+        ' returned no publish time for ' +
+        version +
+        '; timeKeys=' +
+        Object.keys(timeMap).join(',')
+    )
   }
   return { version: version, time: time }
 }

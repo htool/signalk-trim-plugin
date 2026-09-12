@@ -71,4 +71,12 @@ assert.throws(function () {
   })
 }, /no version/)
 
+const live = check.decide({
+  cwd: require('path').join(__dirname, '..'),
+  force: true,
+  changedFiles: []
+})
+assert.strictEqual(typeof live.npmVersion, 'string')
+assert.ok(live.lastPublishTime)
+
 console.log('ok')
