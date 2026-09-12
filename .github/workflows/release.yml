@@ -71,6 +71,7 @@ jobs:
         id: decide
         env:
           FORCE_PUBLISH: ${{ github.event.inputs.force }}
+          NODE_AUTH_TOKEN: ''
         run: node scripts/npm-publish-check.js --github-output
 
       - name: Skip

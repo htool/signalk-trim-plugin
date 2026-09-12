@@ -62,4 +62,13 @@ const forced = check.shouldPublish({
 assert.strictEqual(forced.publish, true)
 assert.strictEqual(forced.reason, 'forced')
 
+assert.throws(function () {
+  check.decide({
+    cwd: require('path').join(__dirname, '..'),
+    npmView: function () {
+      return '{}'
+    }
+  })
+}, /no version/)
+
 console.log('ok')

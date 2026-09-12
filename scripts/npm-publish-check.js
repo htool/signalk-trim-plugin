@@ -163,9 +163,18 @@ function readLocalVersion(cwd) {
 }
 
 function defaultNpmView(pkgName) {
-  const r = spawnSync('npm', ['view', pkgName, '--json'], {
-    encoding: 'utf8'
-  })
+  const env = Object.assign({}, process.env)
+  delete env.NODE_AUTH_TOKEN
+  delete env.NPM_CONFIG_USERCONFIG
+  const r = spawnSync(
+    'npm',
+    ['view', pkgName, '--json', '--registry=https://registry.npmjs.org'],
+    {
+      encoding: 'utf8',
+      cwd: require('os').tmpdir(),
+      env: env
+    }
+  )
   if (r.status !== 0) {
     const err = (r.stderr || r.stdout || '').trim()
     throw new Error('npm view ' + pkgName + ' failed: ' + err)
@@ -177,11 +186,17 @@ function readNpmRelease(pkgName, runner) {
   const run = runner || defaultNpmView
   const raw = run(pkgName)
   const info = typeof raw === 'string' ? JSON.parse(raw) : raw
-  const version = info.version
+  const version = info && info.version
+  if (!version) {
+    throw new Error('npm view ' + pkgName + ' returned no version')
+  }
   const time =
     (info.time && info.time[version]) ||
     (info.time && info.time.modified) ||
     ''
+  if (!time) {
+    throw new Error('npm view ' + pkgName + ' returned no publish time')
+  }
   return { version: version, time: time }
 }
 
