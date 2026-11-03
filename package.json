@@ -22,7 +22,10 @@
   },
   "signalk": {
     "appIcon": "./signalk-logo.png",
-    "displayName": "Sail trim"
+    "displayName": "Sail trim",
+    "recommends": [
+      "signalk-mfd-plugin"
+    ]
   },
   "dependencies": {
     "express": "^4.17.2",
